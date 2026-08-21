@@ -6,6 +6,8 @@
 # Environment:
 #   AGS_VERSION      version to install, without a leading "v" (default: the latest release)
 #   AGS_INSTALL_DIR  where to put the binary (default: $HOME/.local/bin)
+#   AGS_CACHE_DIR    where ags keeps what it needs to build (default: $HOME/.cache/agentscript)
+#   AGS_NO_TOOLCHAIN_FETCH=1   never download anything beyond the binary itself
 #
 # It downloads one prebuilt binary and the release's SHA256SUMS manifest,
 # VERIFIES the binary against it, and refuses to install if that check fails.
@@ -59,7 +61,25 @@ main() {
 
 	say "installed -> ${dir}/ags"
 	"${dir}/ags" version 2>/dev/null | head -1 || true
+
+	# check_path BEFORE the warm-up: the install is complete by here, and its
+	# "not on your PATH" hint must not sit behind a download.
 	check_path "$dir"
+
+	# Warm whatever `ags` needs to compile with, so that cost lands here rather
+	# than in the middle of someone's first `ags run`. Deliberately no version
+	# logic in this script: ags already knows its own resolution order and will
+	# do nothing if the machine is fine as it is.
+	#
+	# stderr is deliberately NOT discarded. ags draws one transient progress line
+	# there while fetching, and silencing it is worst exactly where it matters —
+	# a first install with no Go would sit with no output for a ~75 MB download,
+	# which is indistinguishable from a hang. Only stdout is dropped.
+	#
+	# BEST EFFORT. The install has already succeeded by this line, and a machine
+	# that is offline, behind a proxy, or has opted out must not have a working
+	# install reported as a failure.
+	"${dir}/ags" toolchain --quiet >/dev/null || true
 }
 
 say()  { printf '%s\n' "$*"; }
