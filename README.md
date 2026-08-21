@@ -51,6 +51,8 @@ only works if you can already write there.
 |---|---|---|
 | `AGS_VERSION` | the latest release | pin a version, e.g. `0.2.0` |
 | `AGS_INSTALL_DIR` | `~/.local/bin` | where the binary lands — must be writable by you |
+| `AGS_CACHE_DIR` | `$XDG_CACHE_HOME/agentscript`, else `~/.cache/agentscript` | where `ags` keeps what it needs to build |
+| `AGS_NO_TOOLCHAIN_FETCH` | unset | set to `1` to download nothing beyond the binary itself |
 
 ```sh
 curl -fsSL .../install.sh | AGS_VERSION=0.2.0 AGS_INSTALL_DIR="$HOME/bin" sh
@@ -100,8 +102,15 @@ scripted install has nothing to clear.
 
 ### Requirements
 
-The default backend is **self-contained** — no toolchain, no runtime, no
-dependencies. `ags run` and `ags build` work from the downloaded binary alone.
+None beyond the binary. `ags run` and `ags build` work from the downloaded
+binary alone: `ags` compiles through a Go toolchain and manages one itself —
+using a Go already on your `PATH` when that one can do the job, and otherwise
+fetching a pinned, checksum-verified toolchain into its cache directory. Set
+`AGS_NO_TOOLCHAIN_FETCH=1` to refuse every such download, or `AGS_GO=/path/to/go`
+to choose the toolchain yourself.
+
+What you build is self-contained in the stronger sense: `ags build` produces a
+standalone binary with no runtime, no VM, and no dependency on `ags` or on Go.
 
 The optional native backend (`--target=native`) shells out to a system `clang`
 and is **opt-in**; the default backend is the complete reference and native
